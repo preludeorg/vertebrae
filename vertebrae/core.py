@@ -12,6 +12,7 @@ Route = namedtuple('Route', 'method route handle')
 
 
 class Server:
+    """ A server is the driver that runs applications """
 
     def __init__(self, services, applications):
         self.setup_logger(path=os.getenv('logfile'))
@@ -21,8 +22,8 @@ class Server:
         for app in applications:
             self.loop.run_until_complete(app.start())
         for service in services:
-            Service.enroll(service.log.name, service)
-        Service.logger('vertebrae').info(f'Serving {len(applications)} apps with {len(services)} services')
+            Service.enroll(service.name(), service)
+        Service.create_log('server').info(f'Serving {len(applications)} apps with {len(services)} services')
 
     def run(self):
         try:
@@ -40,10 +41,12 @@ class Server:
             handlers=[WatchedFileHandler(filename=path)] if path else None
         )
         for logger_name in logging.root.manager.loggerDict.keys():
-            logging.getLogger(logger_name).setLevel(logging.ERROR)
+            if not logger_name.startswith('vertebrae'):
+                logging.getLogger(logger_name).setLevel(logging.ERROR)
 
 
 class Application:
+    """ An application is a API """
 
     def __init__(self, port, routes):
         self.port = port

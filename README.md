@@ -97,6 +97,6 @@ class MyRoutes:
         ]
 
     async def _get_account(self, request: web.Request) -> web.json_response:
-        resp = await Service.service('basic').get_account(name=request.rel_url.query['name'])
+        resp = await Service.find('basic').get_account(name=request.rel_url.query['name'])
         return web.json_response(resp)
 ```
