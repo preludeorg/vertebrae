@@ -36,11 +36,9 @@ class Service(abc.ABC):
                 asyncio.create_task(func())
 
     @classmethod
-    def create_log(cls, name: str, level=logging.DEBUG) -> logging.Logger:
+    def create_log(cls, name: str) -> logging.Logger:
         """ Create or retrieve a logger """
-        logger = logging.getLogger(f'vertebrae-{name}')
-        logger.setLevel(level)
-        return logger
+        return logging.getLogger(f'vertebrae-{name}')
 
     @abc.abstractmethod
     def name(self) -> str:
