@@ -12,6 +12,7 @@ class Directory:
         self.name = None
 
     async def connect(self) -> None:
+        """ Construct a local file system """
         self.name = Config.find('directory', os.path.join(str(Path.home()), '.vertebrae'))
         if not os.path.exists(self.name):
             os.makedirs(self.name)

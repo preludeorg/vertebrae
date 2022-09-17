@@ -11,7 +11,7 @@ class Relational:
         self._pool = None
 
     async def connect(self) -> None:
-        """ Establish a connection to the databases """
+        """ Establish a connection to Postgres """
         postgres = Config.find('postgres')
         if postgres:
             self._pool = await aiopg.create_pool(f"dbname={postgres['database']} "

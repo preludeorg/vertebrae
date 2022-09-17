@@ -9,6 +9,7 @@ class Cache:
         self._cache = None
 
     async def connect(self) -> None:
+        """ Establish a connection to Redis """
         redis = Config.find('redis')
         if redis:
             self._cache = aioredis.from_url(
