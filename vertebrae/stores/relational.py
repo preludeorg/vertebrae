@@ -1,6 +1,5 @@
-import logging
-
 import aiopg
+import logging
 import psycopg2
 
 from vertebrae.config import Config
