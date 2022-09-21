@@ -1,6 +1,7 @@
 import logging
 
 import aiopg
+import psycopg2
 
 from vertebrae.config import Config
 
@@ -14,12 +15,25 @@ class Relational:
         """ Establish a connection to Postgres """
         postgres = Config.find('postgres')
         if postgres:
-            self._pool = await aiopg.create_pool(f"dbname={postgres['database']} "
-                                                 f"user={postgres['user']} "
-                                                 f"password={postgres['password']} "
-                                                 f"host={postgres['host']} "
-                                                 f"port={postgres['port']} ",
-                                                 minsize=0, maxsize=5, timeout=10.0)
+            dsn = (f"user={postgres['user']} "
+                   f"password={postgres['password']} "
+                   f"host={postgres['host']} "
+                   f"port={postgres['port']} ")
+            try:
+                self._pool = await aiopg.create_pool(dsn + f"dbname={postgres['database']} ",
+                                                     minsize=0, maxsize=5, timeout=10.0)
+                async with self._pool.acquire() as conn:
+                    async with conn.cursor() as cur:
+                        await cur.execute(f"SELECT FROM pg_database WHERE datname = '{postgres['database']};'")
+            except psycopg2.OperationalError:
+                logging.debug(f"Database '{postgres['database']}' does not exist")
+                async with aiopg.create_pool(dsn, minsize=0, maxsize=5, timeout=10.0) as sys_conn:
+                    async with sys_conn.acquire() as conn:
+                        async with conn.cursor() as cur:
+                            await cur.execute(f"CREATE DATABASE {postgres['database']};")
+                logging.debug(f"Created database '{postgres['database']}'")
+                self._pool = await aiopg.create_pool(dsn + f"dbname={postgres['database']} ",
+                                                     minsize=0, maxsize=5, timeout=10.0)
             with open('conf/schema.sql', 'r') as sql:
                 await self.execute(sql.read())
 
