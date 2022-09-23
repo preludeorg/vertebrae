@@ -7,4 +7,4 @@ aiopg~=1.3.4
 aiofiles~=0.8.0
 boto3~=1.24.9
 botocore~=1.27.9
-detect-probe==0.9.16
+detect-probe==0.9.17
