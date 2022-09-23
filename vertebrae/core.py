@@ -36,8 +36,8 @@ def start_probe(token=os.getenv('PRELUDE_TOKEN')):
             ProbeService(token=token).start()
         else:
             probe = ProbeService(
-                account_id=os.getenv('DETECT_ACCOUNT_ID'),
-                account_secret=os.getenv('DETECT_ACCOUNT_TOKEN')
+                account_id=os.getenv('PRELUDE_ACCOUNT_ID'),
+                account_secret=os.getenv('PRELUDE_ACCOUNT_SECRET')
             )
             probe.register()
             probe.start()
