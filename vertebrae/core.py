@@ -57,12 +57,9 @@ class Server:
     @staticmethod
     def start_probe():
         """ Detach a Detect Probe inside the application process """
-        if os.getenv('PRELUDE_ACCOUNT_ID') and os.getenv('PRELUDE_ACCOUNT_SECRET'):
-            service = ProbeService()
-            if service.register():
-                service.start()
-        else:
-            create_log('server').error('Variables required to start probe: PRELUDE_ACCOUNT_ID, PRELUDE_ACCOUNT_SECRET')
+        service = ProbeService()
+        if service.register():
+            service.start()
 
     @staticmethod
     def setup_logger(path):
