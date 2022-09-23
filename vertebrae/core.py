@@ -30,19 +30,16 @@ def create_log(name: str) -> logging.Logger:
     return logging.getLogger(f'vertebrae.{name}')
 
 
-def start_probe():
+def start_probe(token=os.getenv('PRELUDE_TOKEN')):
     try:
-        if os.getenv('DETECT_ACCOUNT_ID') and os.getenv('DETECT_ACCOUNT_TOKEN'):
+        if token:
+            ProbeService(token=token).start()
+        else:
             probe = ProbeService(
                 account_id=os.getenv('DETECT_ACCOUNT_ID'),
                 account_secret=os.getenv('DETECT_ACCOUNT_TOKEN')
             )
             probe.register()
-            probe.start()
-        elif os.getenv('PRELUDE_TOKEN'):
-            probe = ProbeService(
-                token=os.getenv('PRELUDE_TOKEN')
-            )
             probe.start()
     except Exception as e:
         logging.error(f'Unable to register probe: [{e}]')
