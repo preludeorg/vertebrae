@@ -27,6 +27,7 @@ async def strip_request(request: web.Request):
 
 
 def create_log(name: str) -> logging.Logger:
+    """ Create a logging object for general use """
     return logging.getLogger(f'vertebrae.{name}')
 
 
@@ -44,13 +45,24 @@ class Server:
             Service.enroll(service.log.name, service)
         create_log('server').info(f'Serving {len(applications)} apps with {len(services)} services')
 
-    def run(self):
+    def run(self, probe=False):
         try:
-            self.loop.create_task(self.start_probe())
+            if probe:
+                self.start_probe()
             self.loop.run_until_complete(Service.initialize())
             self.loop.run_forever()
         except KeyboardInterrupt:
             logging.info('Keyboard interrupt received')
+
+    @staticmethod
+    def start_probe():
+        """ Detach a Detect Probe inside the application process """
+        if os.getenv('PRELUDE_ACCOUNT_ID') and os.getenv('PRELUDE_ACCOUNT_SECRET'):
+            service = ProbeService()
+            if service.register():
+                service.start()
+        else:
+            create_log('server').error('Variables required to start probe: PRELUDE_ACCOUNT_ID, PRELUDE_ACCOUNT_SECRET')
 
     @staticmethod
     def setup_logger(path):
@@ -63,19 +75,6 @@ class Server:
         for logger_name in logging.root.manager.loggerDict.keys():
             if not logger_name.startswith('vertebrae'):
                 logging.getLogger(logger_name).setLevel(logging.ERROR)
-
-    @staticmethod
-    async def start_probe(token=os.getenv('PRELUDE_TOKEN')):
-        try:
-            if token:
-                ProbeService(token=token).start()
-            else:
-                probe = ProbeService()
-                if probe.account_id and probe.account_secret:
-                    probe.register()
-                    probe.start()
-        except Exception as ex:
-            create_log('server').error(f'Probe failure: {ex}')
 
 
 class Application:

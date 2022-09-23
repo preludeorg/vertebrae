@@ -5,7 +5,8 @@ from vertebrae.config import Config
 
 class Cache:
 
-    def __init__(self):
+    def __init__(self, log):
+        self.log = log
         self._cache = None
 
     async def connect(self) -> None:

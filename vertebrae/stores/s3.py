@@ -1,19 +1,20 @@
 import asyncio
 import concurrent.futures
 import logging
+from pathlib import Path
 from typing import Optional
 
 import boto3
 import botocore
 from botocore.exceptions import ProfileNotFound, BotoCoreError
-from pathlib import Path
 
 from vertebrae.config import Config
 
 
 class S3:
 
-    def __init__(self):
+    def __init__(self, log):
+        self.log = log
         self.client = None
 
     async def connect(self):
@@ -33,8 +34,11 @@ class S3:
 
     async def read(self, bucket: str, key: str) -> str:
         """ Read file from S3 """
-        body = self.client.get_object(Bucket=bucket, Key=key)
-        return body['Body'].read()
+        try:
+            body = self.client.get_object(Bucket=bucket, Key=key)
+            return body['Body'].read()
+        except self.client.exceptions.NoSuchKey:
+            self.log.error(f'Missing {key}')
 
     async def write(self, bucket: str, key: str, contents: str) -> None:
         """ Write file to S3 """
@@ -62,7 +66,7 @@ class S3:
                     my_files[Path(key).stem] = contents
             return my_files
         except botocore.exceptions.ConnectionClosedError:
-            logging.error('Failed connection to AWS S3')
+            self.log.error('Failed connection to AWS S3')
 
     def redirect_url(self, bucket: str, object_name: str, expires_in=60) -> Optional[str]:
         """ Generate a time-bound redirect URL to a specific file in a bucket """

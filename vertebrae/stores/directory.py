@@ -8,7 +8,8 @@ from vertebrae.config import Config
 
 class Directory:
 
-    def __init__(self):
+    def __init__(self, log):
+        self.log = log
         self.name = None
 
     async def connect(self) -> None:

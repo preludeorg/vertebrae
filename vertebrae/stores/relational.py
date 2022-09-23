@@ -1,5 +1,3 @@
-import logging
-
 import aiopg
 
 from vertebrae.config import Config
@@ -7,7 +5,8 @@ from vertebrae.config import Config
 
 class Relational:
 
-    def __init__(self):
+    def __init__(self, log):
+        self.log = log
         self._pool = None
 
     async def connect(self) -> None:
@@ -32,7 +31,7 @@ class Relational:
                     if return_id:
                         return (await cur.fetchone())[0]
         except Exception as e:
-            logging.exception(e)
+            self.log.exception(e)
 
     async def fetch(self, query: str, params=()):
         """ Find all matches for a query """
@@ -42,4 +41,4 @@ class Relational:
                     await cur.execute(query, params)
                     return await cur.fetchall()
         except Exception as e:
-            logging.exception(e)
+            self.log.exception(e)
