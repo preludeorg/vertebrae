@@ -30,21 +30,6 @@ def create_log(name: str) -> logging.Logger:
     return logging.getLogger(f'vertebrae.{name}')
 
 
-def start_probe(token=os.getenv('PRELUDE_TOKEN')):
-    try:
-        if token:
-            ProbeService(token=token).start()
-        else:
-            probe = ProbeService(
-                account_id=os.getenv('PRELUDE_ACCOUNT_ID'),
-                account_secret=os.getenv('PRELUDE_ACCOUNT_SECRET')
-            )
-            probe.register()
-            probe.start()
-    except Exception as e:
-        logging.error(f'Unable to register probe: [{e}]')
-
-
 class Server:
     """ A server is the driver that runs applications """
 
@@ -61,7 +46,7 @@ class Server:
 
     def run(self):
         try:
-            start_probe()
+            self.loop.create_task(self.start_probe())
             self.loop.run_until_complete(Service.initialize())
             self.loop.run_forever()
         except KeyboardInterrupt:
@@ -78,6 +63,19 @@ class Server:
         for logger_name in logging.root.manager.loggerDict.keys():
             if not logger_name.startswith('vertebrae'):
                 logging.getLogger(logger_name).setLevel(logging.ERROR)
+
+    @staticmethod
+    async def start_probe(token=os.getenv('PRELUDE_TOKEN')):
+        try:
+            if token:
+                ProbeService(token=token).start()
+            else:
+                probe = ProbeService()
+                if probe.account_id and probe.account_secret:
+                    probe.register()
+                    probe.start()
+        except Exception as ex:
+            create_log('server').error(f'Probe failure: {ex}')
 
 
 class Application:
