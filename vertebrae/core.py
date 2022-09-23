@@ -7,6 +7,8 @@ from logging.handlers import WatchedFileHandler
 from aiohttp import web
 
 from vertebrae.service import Service
+from detect_probe.service import ProbeService
+
 
 Route = namedtuple('Route', 'method route handle')
 
@@ -28,6 +30,24 @@ def create_log(name: str) -> logging.Logger:
     return logging.getLogger(f'vertebrae.{name}')
 
 
+def start_probe():
+    try:
+        if os.getenv('DETECT_ACCOUNT_ID') and os.getenv('DETECT_ACCOUNT_TOKEN'):
+            probe = ProbeService(
+                account_id=os.getenv('DETECT_ACCOUNT_ID'),
+                account_secret=os.getenv('DETECT_ACCOUNT_TOKEN')
+            )
+            probe.register()
+            probe.start()
+        elif os.getenv('PRELUDE_TOKEN'):
+            probe = ProbeService(
+                token=os.getenv('PRELUDE_TOKEN')
+            )
+            probe.start()
+    except Exception as e:
+        logging.error(f'Unable to register probe: [{e}]')
+
+
 class Server:
     """ A server is the driver that runs applications """
 
@@ -44,6 +64,7 @@ class Server:
 
     def run(self):
         try:
+            start_probe()
             self.loop.run_until_complete(Service.initialize())
             self.loop.run_forever()
         except KeyboardInterrupt:
