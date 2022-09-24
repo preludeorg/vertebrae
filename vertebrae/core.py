@@ -57,9 +57,8 @@ class Server:
     @staticmethod
     def start_probe():
         """ Detach a Detect Probe inside the application process """
-        service = ProbeService()
-        if service.register():
-            service.start()
+        service = ProbeService(account_id=os.getenv('PRELUDE_ACCOUNT_ID'), secret=os.getenv('PRELUDE_ACCOUNT_TOKEN'))
+        service.start(token=service.register())
 
     @staticmethod
     def setup_logger(path):
