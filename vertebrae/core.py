@@ -45,10 +45,9 @@ class Server:
             Service.enroll(service.log.name, service)
         create_log('server').info(f'Serving {len(applications)} apps with {len(services)} services')
 
-    def run(self, probe=False):
+    def run(self):
         try:
-            if probe:
-                self.start_probe()
+            self.start_probe()
             self.loop.run_until_complete(Service.initialize())
             self.loop.run_forever()
         except KeyboardInterrupt:
