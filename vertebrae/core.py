@@ -87,8 +87,11 @@ class Application:
         self.application.router.add_route('GET', '/ping', self.pong)
 
     async def start(self):
-        self.application.router.add_static('/client', 'client', append_version=True)
-        aiohttp_jinja2.setup(self.application, loader=jinja2.FileSystemLoader('client/templates'))
+        try:
+            self.application.router.add_static('/client', 'client', append_version=True)
+            aiohttp_jinja2.setup(self.application, loader=jinja2.FileSystemLoader('client/templates'))
+        except Exception as e:
+            logging.warning(e)
         runner = web.AppRunner(self.application)
         await runner.setup()
         await web.TCPSite(runner=runner, port=self.port).start()
