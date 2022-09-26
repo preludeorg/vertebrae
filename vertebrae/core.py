@@ -77,9 +77,9 @@ class Server:
 class Application:
     """ An application is a API """
 
-    def __init__(self, port, routes):
+    def __init__(self, port, routes, client_max_size=4096):
         self.port = port
-        self.application = web.Application(client_max_size=4096)
+        self.application = web.Application(client_max_size=client_max_size)
 
         for collection in routes:
             for route in collection.routes():
