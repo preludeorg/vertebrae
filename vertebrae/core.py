@@ -90,8 +90,8 @@ class Application:
         try:
             self.application.router.add_static('/client', 'client', append_version=True)
             aiohttp_jinja2.setup(self.application, loader=jinja2.FileSystemLoader('client/templates'))
-        except Exception as e:
-            logging.warning(e)
+        except:
+            create_log('server').info('No GUI attached. See pypi.org/project/vertebrae for more info.')
         runner = web.AppRunner(self.application)
         await runner.setup()
         await web.TCPSite(runner=runner, port=self.port).start()
