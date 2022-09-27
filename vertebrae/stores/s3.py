@@ -1,6 +1,6 @@
 import asyncio
 import concurrent.futures
-import logging
+
 from pathlib import Path
 from typing import Optional
 
@@ -43,6 +43,10 @@ class S3:
     async def write(self, bucket: str, key: str, contents: str) -> None:
         """ Write file to S3 """
         self.client.put_object(Body=contents, Bucket=bucket, Key=key)
+
+    async def delete(self, bucket: str, key: str) -> None:
+        """ Delete file from S3 """
+        self.client.delete_object(Bucket=bucket, Key=key)
 
     async def read_all(self, bucket: str, prefix: str) -> [str]:
         """ Read all contents of S3 bucket """
