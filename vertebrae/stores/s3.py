@@ -54,7 +54,8 @@ class S3:
     async def walk(self, bucket: str, prefix: str) -> [str]:
         """ Get all files of S3 bucket """
         try:
-            return self.client.list_objects_v2(Bucket=bucket, Prefix=prefix).get('Contents')
+            obj_list = self.client.list_objects_v2(Bucket=bucket, Prefix=prefix).get('Contents')
+            return [f['Key'] for f in obj_list]
         except botocore.exceptions.ConnectionClosedError:
             self.log.error('Failed connection to AWS S3')
 
@@ -75,8 +76,8 @@ class S3:
 
             tasks = []
             executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
-            for key in files:
-                tasks.append(asyncio.get_event_loop().run_in_executor(executor, _retrieve, key['Key']))
+            for f in files:
+                tasks.append(asyncio.get_event_loop().run_in_executor(executor, _retrieve, f))
             completed, pending = await asyncio.wait(tasks)
             for task in completed:
                 key, contents = task.result()
