@@ -41,11 +41,11 @@ class Relational:
             with open('conf/schema.sql', 'r') as sql:
                 await self.execute(sql.read())
 
-    async def execute(self, statement: str, params=(), return_id=False):
-        """ Run statement retrieving either nothing or the row ID """
+    async def execute(self, statement: str, params=(), return_val=False):
+        """ Run statement """
         async def cursor_operation(cur):
-           if return_id:
-               return (await cur.fetchone())[0]
+            if return_val:
+                return (await cur.fetchone())[0]
 
         try:
             return await self.__pool_execute(self._pool, statement, params, cursor_operation)
