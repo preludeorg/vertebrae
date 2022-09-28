@@ -52,6 +52,13 @@ class S3:
         self.client.delete_object(Bucket=bucket, Key=key)
 
     async def walk(self, bucket: str, prefix: str) -> [str]:
+        """ Get all files of S3 bucket """
+        try:
+            return self.client.list_objects_v2(Bucket=bucket, Prefix=prefix).get('Contents')
+        except botocore.exceptions.ConnectionClosedError:
+            self.log.error('Failed connection to AWS S3')
+
+    async def read_all(self, bucket: str, prefix: str) -> [str]:
         """ Read all contents of S3 bucket """
         def _retrieve(k):
             try:
@@ -62,12 +69,12 @@ class S3:
 
         my_files = dict()
         try:
-            tasks = []
-            executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
-            files = self.client.list_objects_v2(Bucket=bucket, Prefix=prefix).get('Contents')
+            files = await self.walk(bucket=bucket, prefix=prefix)
             if not files:
                 return my_files
 
+            tasks = []
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
             for key in files:
                 tasks.append(asyncio.get_event_loop().run_in_executor(executor, _retrieve, key['Key']))
             completed, pending = await asyncio.wait(tasks)
