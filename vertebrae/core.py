@@ -77,7 +77,7 @@ class Server:
 class Application:
     """ An application is a API """
 
-    def __init__(self, port, routes, client_max_size=4096, html_template_directory: str = 'client/template'):
+    def __init__(self, port, routes, client_max_size=4096, html_template_directory: str='client/template'):
         self.port = port
         self.application = web.Application(client_max_size=client_max_size)
         self.html_template_directory = html_template_directory
