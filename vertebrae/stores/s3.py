@@ -1,6 +1,7 @@
 import os
 import asyncio
 import concurrent.futures
+import logging
 
 from typing import Optional
 
@@ -15,6 +16,7 @@ class S3:
 
     def __init__(self, log):
         self.log = log
+        logging.getLogger('s3transfer').setLevel(logging.INFO)
         self.client = None
 
     async def connect(self):
@@ -40,6 +42,20 @@ class S3:
             return body['Body'].read()
         except self.client.exceptions.NoSuchKey:
             self.log.error(f'Missing {key}')
+
+    def download_file(self, filename: str, dst: str):
+        bucket, key = filename.split('/', 1)
+        try:
+            self.client.download_file(bucket, key, dst)
+        except self.client.exceptions.NoSuchKey:
+            self.log.error(f'Missing {key}')
+
+    def upload_file(self, src: str, filename: str):
+        bucket, key = filename.split('/', 1)
+        try:
+            self.client.upload_file(src, bucket, key)
+        except FileNotFoundError:
+            self.log.error(f'Missing {src}')
 
     async def write(self, filename: str, contents: str) -> None:
         """ Write file to S3 """
