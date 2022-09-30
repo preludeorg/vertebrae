@@ -13,7 +13,7 @@ from detect_probe.service import ProbeService
 
 
 Route = namedtuple('Route', 'method route handle')
-
+StaticRoute = namedtuple('StaticRoute', 'prefix path')
 
 async def strip_request(request: web.Request):
     """ Strip data off request consistently regardless of method """
@@ -85,11 +85,13 @@ class Application:
         for collection in routes:
             for route in collection.routes():
                 self.application.router.add_route(route.method, route.route, route.handle)
+            if hasattr(collection, 'static_routes'):
+                for route in collection.static_routes():
+                    self.application.router.add_static(route.prefix, f'client/{route.path}')
         self.application.router.add_route('GET', '/ping', self.pong)
 
     async def start(self):
         try:
-            self.application.router.add_static('/client', 'client', append_version=True)
             aiohttp_jinja2.setup(self.application, loader=jinja2.FileSystemLoader(self.html_template_directory))
         except:
             create_log('server').info('No GUI attached. See pypi.org/project/vertebrae for more info.')
