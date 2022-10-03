@@ -82,9 +82,10 @@ class Server:
 class Application:
     """ An application is a API """
 
-    def __init__(self, port, routes, client_max_size=4096):
+    def __init__(self, port, routes, client_max_size=4096, template_directory='templates'):
         self.port = port
         self.routes = routes
+        self.template_directory = template_directory
         self.application = web.Application(client_max_size=client_max_size)
         self.application.router.add_route('GET', '/ping', self.pong)
 
@@ -98,7 +99,7 @@ class Application:
                     self.application.router.add_static(route.prefix, route.path)
 
     def attach_gui(self):
-        aiohttp_jinja2.setup(self.application, loader=jinja2.FileSystemLoader('client/templates'))
+        aiohttp_jinja2.setup(self.application, loader=jinja2.FileSystemLoader(f'client/{self.template_directory}'))
 
     async def start(self):
         runner = web.AppRunner(self.application)
