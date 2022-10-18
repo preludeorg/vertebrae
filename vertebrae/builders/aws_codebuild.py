@@ -50,22 +50,30 @@ class AwsCodeBuild:
         session = boto3.session.Session(profile_name=load_profile())
         self.client = session.client(service_name='codebuild', region_name='us-east-1')
 
-    def create_project(self, account_id: str, dcf_name: str):
-        # TODO figure out environment.type
+    def start_build(self, account_id: str, project_name: str, dcf_name: str):
         ext = dcf_name[dcf_name.rindex('.')+1:]
         target = 'x86_64-linux-gnu'
         out = dcf_name.replace(f'.{ext}', f'-{target[:target.index("-")]}.so')
         build_spec = build_spec_c.format(dcf_name, target, out, out)
 
         aws_dcf_name = dcf_name.replace(".", "_")
-        project_name = f'{account_id}_{aws_dcf_name}'
+
+        source = f'prelude-account-local/{account_id}/src/{aws_dcf_name}/'
+        res = self.client.start_build(
+            projectName=project_name,
+            buildspecOverride=build_spec,
+            sourceLocationOverride=source,
+        )
+        print(f'start_build:\n{res}\n')
+
+    def get_project(self, account_id: str) -> str:
+        project_name = f'{account_id}'
         try:
             res = self.client.create_project(
                 name=project_name,
                 source=dict(
                     type="S3",
-                    location=f'prelude-account-local/{account_id}/src/{aws_dcf_name}/',
-                    buildspec=build_spec,
+                    location=f'prelude-account-local/{account_id}/src/',
                 ),
                 artifacts=dict(
                     type="S3",
@@ -90,15 +98,13 @@ class AwsCodeBuild:
         except self.client.exceptions.ResourceAlreadyExistsException as e:
             return project_name
 
-    def start_build(self, project_name: str):
-        res = self.client.start_build(
-            projectName=project_name
-        )
-        print(f'start_build:\n{res}\n')
-
 
 if __name__ == '__main__':
     cb = AwsCodeBuild()
     cb.connect()
-    project_name = cb.create_project('foo', '324829a8-9ba9-4559-9b97-4e4cc0cc3bf4_linux.c')
-    cb.start_build(project_name)
+    account_id = 'foo'
+    dcf = '324829a8-9ba9-4559-9b97-4e4cc0cc3bf4_linux.c'
+    # project_name = cb.create_project('foo', '324829a8-9ba9-4559-9b97-4e4cc0cc3bf4_linux.c')
+    # cb.start_build(project_name)
+    project_name = cb.get_project(account_id)
+    cb.start_build(account_id, project_name, dcf)
