@@ -1,10 +1,11 @@
 import json
 import logging
+import time
 
 import boto3
 from botocore.exceptions import ProfileNotFound
 
-build_spec_c = '''
+build_spec_c_lib = '''
 version: 0.2
 
 phases:
@@ -54,7 +55,7 @@ class AwsCodeBuild:
         ext = dcf_name[dcf_name.rindex('.')+1:]
         target = 'x86_64-linux-gnu'
         out = dcf_name.replace(f'.{ext}', f'-{target[:target.index("-")]}.so')
-        build_spec = build_spec_c.format(dcf_name, target, out, out)
+        build_spec = build_spec_c_lib.format(dcf_name, target, out, out)
 
         aws_dcf_name = dcf_name.replace(".", "_")
 
@@ -65,6 +66,7 @@ class AwsCodeBuild:
             sourceLocationOverride=source,
         )
         print(f'start_build:\n{res}\n')
+        return res['build']['id']
 
     def get_project(self, account_id: str) -> str:
         project_name = f'{account_id}'
@@ -98,13 +100,23 @@ class AwsCodeBuild:
         except self.client.exceptions.ResourceAlreadyExistsException as e:
             return project_name
 
+    def wait_for_build(self, build_id: str):
+        builds = self.client.batch_get_builds(ids=[build_id])
+        print(f'batch_get_builds:\n{builds}\n')
+        current_build = next(filter(lambda build: build['id'] == build_id, builds['builds']))
+        build_status = current_build['buildStatus']
+        if build_status != 'IN_PROGRESS':
+            return build_status == 'SUCCEEDED'
+        time.sleep(5)
+        return self.wait_for_build(build_id)
+
 
 if __name__ == '__main__':
     cb = AwsCodeBuild()
     cb.connect()
     account_id = 'foo'
     dcf = '324829a8-9ba9-4559-9b97-4e4cc0cc3bf4_linux.c'
-    # project_name = cb.create_project('foo', '324829a8-9ba9-4559-9b97-4e4cc0cc3bf4_linux.c')
-    # cb.start_build(project_name)
     project_name = cb.get_project(account_id)
-    cb.start_build(account_id, project_name, dcf)
+    build_id = cb.start_build(account_id, project_name, dcf)
+    is_build_success = cb.wait_for_build(build_id)
+    print(f'is success: {is_build_success}')
