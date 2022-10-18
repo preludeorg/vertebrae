@@ -5,6 +5,7 @@ import time
 import boto3
 from botocore.exceptions import ProfileNotFound
 
+region = 'us-east-1'
 build_spec_c_lib = '''
 version: 0.2
 
@@ -31,10 +32,12 @@ artifacts:
 
 
 class AwsCodeBuild:
-    def __init__(self):
+    def __init__(self, s3):
         # self.log = log
         # logging.getLogger('awscodebuild').setLevel(logging.INFO)
         self.client = None
+        self.s3 = s3
+        self.bucket = 'prelude-account-local'
 
     def connect(self):
         """ Establish a connection to AWS """
@@ -49,7 +52,7 @@ class AwsCodeBuild:
                 return None
 
         session = boto3.session.Session(profile_name=load_profile())
-        self.client = session.client(service_name='codebuild', region_name='us-east-1')
+        self.client = session.client(service_name='codebuild', region_name=region)
 
     def start_build(self, account_id: str, project_name: str, dcf_name: str):
         ext = dcf_name[dcf_name.rindex('.')+1:]
@@ -59,7 +62,10 @@ class AwsCodeBuild:
 
         aws_dcf_name = dcf_name.replace(".", "_")
 
-        source = f'prelude-account-local/{account_id}/src/{aws_dcf_name}/'
+        resp = self.s3.delete_object(Bucket=self.bucket, Key=f'{account_id}/dst/{out}')
+        print(f'delete_object:\n{resp}\n')
+
+        source = f'{self.bucket}/{account_id}/src/{aws_dcf_name}/'
         res = self.client.start_build(
             projectName=project_name,
             buildspecOverride=build_spec,
@@ -69,17 +75,17 @@ class AwsCodeBuild:
         return res['build']['id']
 
     def get_project(self, account_id: str) -> str:
-        project_name = f'{account_id}'
+        project_name = account_id
         try:
             res = self.client.create_project(
                 name=project_name,
                 source=dict(
                     type="S3",
-                    location=f'prelude-account-local/{account_id}/src/',
+                    location=f'{self.bucket}/{account_id}/src/',
                 ),
                 artifacts=dict(
                     type="S3",
-                    location=f'prelude-account-local',
+                    location=self.bucket,
                     path=f'{account_id}/dst/',
                     name='/',
                     packaging='NONE',
@@ -111,8 +117,21 @@ class AwsCodeBuild:
         return self.wait_for_build(build_id)
 
 
+def get_s3():
+    def load_profile(profile='default'):
+        try:
+            boto3.session.Session(profile_name=profile)
+            boto3.setup_default_session(profile_name=profile)
+            return profile
+        except ProfileNotFound:
+            return None
+
+    session = boto3.session.Session(profile_name=load_profile())
+    return session.client(service_name='s3', region_name=region)
+
+
 if __name__ == '__main__':
-    cb = AwsCodeBuild()
+    cb = AwsCodeBuild(get_s3())
     cb.connect()
     account_id = 'foo'
     dcf = '324829a8-9ba9-4559-9b97-4e4cc0cc3bf4_linux.c'
