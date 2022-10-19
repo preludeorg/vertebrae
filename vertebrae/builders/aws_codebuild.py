@@ -37,8 +37,6 @@ class AwsCodeBuild:
         # logging.getLogger('awscodebuild').setLevel(logging.INFO)
         self.client = None
         self.s3 = s3
-        self.bucket = 'prelude-account-local'
-        self.role_to_use = 'arn:aws:iam::231489180083:role/AwsCodeBuildAdminRole'
 
     def connect(self):
         """ Establish a connection to AWS """
@@ -56,12 +54,8 @@ class AwsCodeBuild:
         self.client = session.client(service_name='codebuild', region_name=region)
 
     @classmethod
-    def __get_file_extension(cls, dcf_name: str) -> str:
-        return dcf_name[dcf_name.rindex('.')+1:]
-
-    @classmethod
-    def __get_buildspec(cls, dcf_name: str, target: str, out_file: str, artifact_type: ArtifactType):
-        ext = cls.__get_file_extension(dcf_name)
+    def __generate_buildspec(cls, dcf_name: str, target: str, out_file: str, artifact_type: ArtifactType):
+        ext = dcf_name[dcf_name.rindex('.')+1:]
         build_command = build_commands[ext][artifact_type.value].format(dcf_name, target, out_file)
         build_spec = build_spec_template.format(build_command, out_file)
         return build_spec
@@ -99,7 +93,7 @@ class AwsCodeBuild:
     def start_build(self, req: StartBuildRequest):
         res = self.client.start_build(
             projectName=req.project_name,
-            buildspecOverride=self.__get_buildspec(req.source_file_s3, req.target, req.artifact_filename_s3, req.artifact_type),
+            buildspecOverride=self.__generate_buildspec(req.source_file_s3, req.target, req.artifact_filename_s3, req.artifact_type),
             sourceLocationOverride=req.source_dir_s3,
         )
         print(f'start_build:\n{res}\n')
@@ -156,15 +150,18 @@ if __name__ == '__main__':
     cb = AwsCodeBuild(s3)
     cb.connect()
 
+    bucket = 'prelude-account-local'
+    role_to_use = 'arn:aws:iam::231489180083:role/AwsCodeBuildAdminRole'
+
     account_id = 'foo'
     dcf = '324829a8-9ba9-4559-9b97-4e4cc0cc3bf4_linux.c'
     target = 'x86_64-linux-gnu'
 
     project_name = cb.get_project(AwsCodeBuild.GetProjectRequest(
         project_name=account_id,
-        source_s3=f'{cb.bucket}/{account_id}/src/',
-        destination_s3=f'{cb.bucket}/{account_id}/dst/',
-        serviceRole=cb.role_to_use,
+        source_s3=f'{bucket}/{account_id}/src/',
+        destination_s3=f'{bucket}/{account_id}/dst/',
+        serviceRole=role_to_use,
         environment=dict(
             # type='LINUX_CONTAINER',
             type='ARM_CONTAINER',
@@ -173,7 +170,7 @@ if __name__ == '__main__':
             imagePullCredentialsType='SERVICE_ROLE'
         ))
     )
-    build_ids = [start_build(cb, s3, account_id, project_name, cb.bucket, dcf, target, ArtifactType.LIBRARY),
-                 start_build(cb, s3, account_id, project_name, cb.bucket, dcf, target, ArtifactType.BINARY)]
+    build_ids = [start_build(cb, s3, account_id, project_name, bucket, dcf, target, ArtifactType.LIBRARY),
+                 start_build(cb, s3, account_id, project_name, bucket, dcf, target, ArtifactType.BINARY)]
     is_build_success = cb.wait_for_builds(build_ids, 5)
     print(f'is success: {is_build_success}')
