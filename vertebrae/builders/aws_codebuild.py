@@ -140,12 +140,14 @@ def start_build(cb: AwsCodeBuild, s3, account_id: str, project_name: str, bucket
 
 
 if __name__ == '__main__':
+    Config.load(Config.strip(env='/Users/fm/code/operator-server/conf/env.yml'))
+
     s3 = get_s3()
     cb = AwsCodeBuild(s3)
     cb.connect()
 
-    bucket = 'prelude-account-local'
-    role_to_use = 'arn:aws:iam::231489180083:role/AwsCodeBuildAdminRole'
+    bucket = Config.find('aws')['buckets']['accounts']
+    role_to_use = Config.find('aws')['codebuildRole']
 
     account_id = 'foo'
     dcf = '324829a8-9ba9-4559-9b97-4e4cc0cc3bf4_linux.c'
