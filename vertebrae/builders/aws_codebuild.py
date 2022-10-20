@@ -1,9 +1,9 @@
+import asyncio
 import logging
 from collections import namedtuple
 from enum import Enum
 
 import boto3
-import time
 from botocore.exceptions import ProfileNotFound
 
 from vertebrae.config import Config
@@ -98,75 +98,12 @@ class AwsCodeBuild:
         )
         return res['build']['id']
 
-    def wait_for_builds(self, build_ids: [str], sleep_between_get: int):
+    async def wait_for_builds(self, build_ids: [str], sleep_between_get: int):
         res = self.client.batch_get_builds(ids=build_ids)
         builds_to_watch = [build for build in res['builds'] if build['id'] in build_ids]
         build_done = [build for build in builds_to_watch if build['buildStatus'] != 'IN_PROGRESS']
         if len(build_done) == len(build_ids):
             return len([build for build in build_done if build['buildStatus'] == 'SUCCEEDED']) == len(build_ids)
-        time.sleep(sleep_between_get)
-        return self.wait_for_builds([build['id'] for build in builds_to_watch if build['buildStatus'] == 'IN_PROGRESS'],
+        await asyncio.sleep(sleep_between_get)
+        return await self.wait_for_builds([build['id'] for build in builds_to_watch if build['buildStatus'] == 'IN_PROGRESS'],
                                     sleep_between_get)
-
-
-def get_s3():
-    def load_profile(profile='default'):
-        try:
-            boto3.session.Session(profile_name=profile)
-            boto3.setup_default_session(profile_name=profile)
-            return profile
-        except ProfileNotFound:
-            return None
-
-    session = boto3.session.Session(profile_name=load_profile())
-    return session.client(service_name='s3', region_name=Config.find('aws')['region'])
-
-
-def start_build(cb: AwsCodeBuild, s3, account_id: str, project_name: str, bucket: str, dcf_name: str, target: str, artifact_type: ArtifactType):
-    ext = '.so' if artifact_type == ArtifactType.BINARY else '.exe'
-    out_file = dcf_name.replace('.c', f'-{target[:target.index("-")]}{ext}')
-    s3.delete_object(Bucket=bucket, Key=f'{account_id}/dst/{out_file}')
-    dcf_dir = dcf_name.replace(".", "_")
-    return cb.start_build(
-        StartBuildRequest(
-            project_name=project_name,
-            target=target,
-            source_dir_s3=f'{bucket}/{account_id}/src/{dcf_dir}/',
-            source_file_s3=dcf_name,
-            artifact_filename_s3=out_file,
-            artifact_type=artifact_type
-        )
-    )
-
-
-if __name__ == '__main__':
-    Config.load(Config.strip(env='/Users/fm/code/operator-server/conf/env.yml'))
-
-    s3 = get_s3()
-    cb = AwsCodeBuild(s3)
-    cb.connect()
-
-    bucket = Config.find('aws')['buckets']['accounts']
-    role_to_use = Config.find('aws')['codebuildRole']
-
-    account_id = 'foo'
-    dcf = '324829a8-9ba9-4559-9b97-4e4cc0cc3bf4_linux.c'
-    target = 'x86_64-linux-gnu'
-
-    project_name = cb.create_project(CreateProjectRequest(
-        project_name=account_id,
-        source_s3=f'{bucket}/{account_id}/src/',
-        destination_s3=f'{bucket}/{account_id}/dst/',
-        serviceRole=role_to_use,
-        environment=dict(
-            # type='LINUX_CONTAINER',
-            type='ARM_CONTAINER',
-            image='231489180083.dkr.ecr.us-west-1.amazonaws.com/compile:latest',
-            computeType='BUILD_GENERAL1_SMALL',
-            imagePullCredentialsType='SERVICE_ROLE'
-        ))
-    )
-    build_ids = [start_build(cb, s3, account_id, project_name, bucket, dcf, target, ArtifactType.LIBRARY),
-                 start_build(cb, s3, account_id, project_name, bucket, dcf, target, ArtifactType.BINARY)]
-    is_build_success = cb.wait_for_builds(build_ids, 5)
-    print(f'is success: {is_build_success}')
