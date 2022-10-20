@@ -19,7 +19,7 @@ class S3:
         logging.getLogger('s3transfer').setLevel(logging.INFO)
         self.client = None
 
-    async def connect(self):
+    async def connect(self, region=None):
         """ Establish a connection to AWS """
         aws = Config.find('aws')
         if aws:
@@ -32,7 +32,7 @@ class S3:
                     return None
 
             session = boto3.session.Session(profile_name=load_profile())
-            self.client = session.client(service_name='s3', region_name=Config.find('aws')['region'])
+            self.client = session.client(service_name='s3', region_name=region if region else Config.find('aws')['region'])
 
     async def read(self, filename: str) -> str:
         """ Read file from S3 """
