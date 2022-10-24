@@ -90,6 +90,12 @@ class AwsCodeBuild:
         except self.client.exceptions.ResourceAlreadyExistsException as e:
             return req.project_name
 
+    def delete_project(self, project_name: str) -> None:
+        try:
+            self.client.delete_project(project_name)
+        except self.client.exceptions.InvalidInputException as e:
+            self.log.error(f'Project does not exist: {e}')
+
     def start_build(self, req: StartBuildRequest):
         res = self.client.start_build(
             projectName=req.project_name,
