@@ -85,6 +85,10 @@ class AwsCodeBuild:
                 serviceRole=req.serviceRole,
                 timeoutInMinutes=5,
                 queuedTimeoutInMinutes=5,
+                cache=dict(
+                    type='LOCAL',
+                    modes=['LOCAL_DOCKER_LAYER_CACHE']
+                )
             )
             return res['project']['name']
         except self.client.exceptions.ResourceAlreadyExistsException as e:
