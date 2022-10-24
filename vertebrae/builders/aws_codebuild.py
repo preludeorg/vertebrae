@@ -104,6 +104,10 @@ class AwsCodeBuild:
         )
         return res['build']['id']
 
+    def delete_builds(self, build_ids: [str]) -> [str]:
+        resp = self.client.batch_delete_builds(ids=build_ids)
+        return resp['buildsDeleted']
+
     async def wait_for_builds(self, build_ids: [str], sleep_between_get: int):
         res = self.client.batch_get_builds(ids=build_ids)
         builds_to_watch = [build for build in res['builds'] if build['id'] in build_ids]
