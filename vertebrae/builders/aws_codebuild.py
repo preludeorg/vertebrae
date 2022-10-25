@@ -43,7 +43,7 @@ class AwsCodeBuild:
         logging.getLogger('awscodebuild').setLevel(logging.INFO)
         self.client = None
 
-    def connect(self):
+    def connect(self) -> None:
         """ Establish a connection to AWS """
         aws = Config.find('aws')
         if aws:
@@ -59,7 +59,7 @@ class AwsCodeBuild:
             self.client = session.client(service_name='codebuild', region_name=Config.find('aws')['region'])
 
     @classmethod
-    def __generate_buildspec(cls, dcf_name: str, target: str, out_file: str, artifact_type: ArtifactType):
+    def __generate_buildspec(cls, dcf_name: str, target: str, out_file: str, artifact_type: ArtifactType) -> str:
         ext = dcf_name[dcf_name.rindex('.')+1:]
         build_command = build_commands[ext][artifact_type.value].format(dcf_name, target, out_file)
         build_spec = build_spec_template.format(build_command, out_file)
@@ -100,7 +100,7 @@ class AwsCodeBuild:
         except self.client.exceptions.InvalidInputException as e:
             self.log.error(f'Project does not exist: {e}')
 
-    def start_build(self, req: StartBuildRequest):
+    def start_build(self, req: StartBuildRequest) -> str:
         res = self.client.start_build(
             projectName=req.project_name,
             buildspecOverride=self.__generate_buildspec(req.source_file_s3, req.target, req.artifact_filename_s3, req.artifact_type),
@@ -112,9 +112,12 @@ class AwsCodeBuild:
         resp = self.client.batch_delete_builds(ids=build_ids)
         return resp['buildsDeleted']
 
-    async def wait_for_builds(self, build_ids: [str], sleep_between_get: int):
+    def get_builds(self, build_ids: [str]) -> dict:
         res = self.client.batch_get_builds(ids=build_ids)
-        builds_to_watch = [build for build in res['builds'] if build['id'] in build_ids]
+        return res['builds']
+
+    async def wait_for_builds(self, build_ids: [str], sleep_between_get: int):
+        builds_to_watch =  [build for build_id, build in self.get_builds(build_ids) if build_id in build_ids]
         build_done = [build for build in builds_to_watch if build['buildStatus'] != 'IN_PROGRESS']
         if len(build_done) == len(build_ids):
             return len([build for build in build_done if build['buildStatus'] == 'SUCCEEDED']) == len(build_ids)
