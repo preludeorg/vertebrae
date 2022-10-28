@@ -1,15 +1,13 @@
-import os
 import asyncio
 import concurrent.futures
 import logging
-
+import os
 from typing import Optional
 
-import boto3
 import botocore
 from botocore.exceptions import ProfileNotFound, BotoCoreError
 
-from vertebrae.config import Config
+from vertebrae.cloud.aws import AWS
 
 
 class S3:
@@ -21,18 +19,7 @@ class S3:
 
     async def connect(self):
         """ Establish a connection to AWS """
-        aws = Config.find('aws')
-        if aws:
-            def load_profile(profile='default'):
-                try:
-                    boto3.session.Session(profile_name=profile)
-                    boto3.setup_default_session(profile_name=profile)
-                    return profile
-                except ProfileNotFound:
-                    return None
-
-            session = boto3.session.Session(profile_name=load_profile())
-            self.client = session.client(service_name='s3', region_name=Config.find('aws')['region'])
+        self.client = AWS.new_client('s3')
 
     async def exists(self, bucket: str, object: str):
         """ Check if a file exists """
