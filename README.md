@@ -17,6 +17,10 @@ Read our [Vertebrae Framework introduction](https://feed.prelude.org/p/vertebrae
 2. (optionally) Supply connection details to one of the available databases. Vertebrae will create async connection pools to them.
 3. Convert your classes to Vertebrae Services. This creates a mesh network between them. Each service gets a handler to your databases.
 
+## Quick start
+
+Copy the [sample](sample) application and use it as a template for your own projects.
+
 ## Advanced
 
 ### Vertebrae Core
