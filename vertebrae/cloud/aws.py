@@ -5,8 +5,9 @@ from vertebrae.config import Config
 
 
 class AWS:
+
     @classmethod
-    def new_client(cls, service: str):
+    def client(cls, service: str):
         aws = Config.find('aws')
         if aws:
             def load_profile(profile='default'):

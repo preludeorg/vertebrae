@@ -19,7 +19,7 @@ class S3:
 
     async def connect(self):
         """ Establish a connection to AWS """
-        self.client = AWS.new_client('s3')
+        self.client = AWS.client('s3')
 
     async def exists(self, bucket: str, object: str):
         """ Check if a file exists """
