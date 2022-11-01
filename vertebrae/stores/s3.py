@@ -56,13 +56,15 @@ class S3:
         except FileNotFoundError:
             self.log.error(f'Missing {src}')
 
-    async def write(self, filename: str, contents: str) -> None:
+    @staticmethod
+    async def write(filename: str, contents: str) -> None:
         """ Write file to S3 """
         bucket, key = filename.split('/', 1)
         async with AWS.client('s3') as client:
             await client.put_object(Body=contents, Bucket=bucket, Key=key)
 
-    async def delete(self, filename: str) -> None:
+    @staticmethod
+    async def delete(filename: str) -> None:
         """ Delete file from S3 """
         bucket, key = filename.split('/', 1)
         async with AWS.client('s3') as client:
@@ -98,7 +100,8 @@ class S3:
         except botocore.exceptions.ConnectionClosedError:
             self.log.error('Failed connection to AWS S3')
 
-    async def redirect_url(self, bucket: str, object_name: str, expires_in=60) -> Optional[str]:
+    @staticmethod 
+    async def redirect_url(bucket: str, object_name: str, expires_in=60) -> Optional[str]:
         """ Generate a time-bound redirect URL to a specific file in a bucket """
         try:
             async with AWS.client('s3') as client:
