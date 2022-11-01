@@ -34,7 +34,7 @@ class S3:
         try:
             async with AWS.client('s3') as client:
                 body = await client.get_object(Bucket=bucket, Key=key)
-                return body['Body'].read()
+                return await body['Body'].read()
         except await self.client.exceptions.NoSuchKey:
             self.log.error(f'Missing {key}')
         except botocore.exceptions.ClientError:
@@ -101,14 +101,16 @@ class S3:
         except botocore.exceptions.ConnectionClosedError:
             self.log.error('Failed connection to AWS S3')
 
-    @staticmethod 
+    @staticmethod
     async def redirect_url(bucket: str, object_name: str, expires_in=60) -> Optional[str]:
         """ Generate a time-bound redirect URL to a specific file in a bucket """
         try:
             async with AWS.client('s3') as client:
                 return await client.generate_presigned_url(ClientMethod='get_object',
-                                                           Params=dict(Bucket=bucket, Key=object_name),
+                                                           Params=dict(
+                                                               Bucket=bucket, Key=object_name),
                                                            ExpiresIn=expires_in,
                                                            HttpMethod='GET')
         except BotoCoreError:
-            raise FileNotFoundError('Cannot find file. Make sure your requested version is correct.')
+            raise FileNotFoundError(
+                'Cannot find file. Make sure your requested version is correct.')
