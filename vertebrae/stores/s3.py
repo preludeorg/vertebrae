@@ -1,11 +1,10 @@
 import asyncio
-import concurrent.futures
 import logging
 import os
 from typing import Optional
 
 import botocore
-from botocore.exceptions import ProfileNotFound, BotoCoreError, ClientError
+from botocore.exceptions import ProfileNotFound, BotoCoreError
 
 from vertebrae.cloud.aws import AWS
 
@@ -26,8 +25,11 @@ class S3:
         try:
             await self.client.head_object(Bucket=bucket, Key=object)
             return True
-        except await self.client.exceptions.NoSuchKey:
-            self.log.warning(f'Missing {object}')
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == '404':
+                self.log.warning(f'Missing {object}')
+            else:
+                self.log.error(f'Error looking up {object}')
 
     async def read(self, filename: str) -> str:
         """ Read file from S3 """
@@ -44,11 +46,8 @@ class S3:
         bucket, key = filename.split('/', 1)
         try:
             await self.client.download_file(bucket, key, dst)
-        except ClientError as ex:
-            if ex.response.get('Error', {}).get('Code') == 'NoSuchKey':
-                self.log.error(f'Missing {key}')
-            else:
-                self.log.error('Encountered an unknown error')
+        except await self.client.exceptions.NoSuchKey:
+            self.log.warning(f'Missing {object}')
 
     async def upload_file(self, src: str, filename: str):
         bucket, key = filename.split('/', 1)
