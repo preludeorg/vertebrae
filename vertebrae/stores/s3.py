@@ -91,12 +91,12 @@ class S3:
 
         my_files = dict()
         try:
-            files = await self.walk(bucket=bucket, prefix=prefix)
-            completed, pending = await asyncio.wait([_retrieve(f) for f in files])
-            for task in completed:
-                key, contents = task.result()
-                if contents:
-                    my_files[os.path.basename(key)] = contents
+            if files := await self.walk(bucket=bucket, prefix=prefix):
+                completed, pending = await asyncio.wait([_retrieve(f) for f in files])
+                for task in completed:
+                    key, contents = task.result()
+                    if contents:
+                        my_files[os.path.basename(key)] = contents
             return my_files
         except botocore.exceptions.ConnectionClosedError:
             self.log.error('Failed connection to AWS S3')
