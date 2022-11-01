@@ -5,7 +5,7 @@ import os
 from typing import Optional
 
 import botocore
-from botocore.exceptions import ProfileNotFound, BotoCoreError
+from botocore.exceptions import ProfileNotFound, BotoCoreError, ClientError
 
 from vertebrae.cloud.aws import AWS
 
@@ -19,12 +19,12 @@ class S3:
 
     async def connect(self):
         """ Establish a connection to AWS """
-        self.client = AWS.client('s3')
+        self.client = await AWS.client('s3')
 
     async def exists(self, bucket: str, object: str):
         """ Check if a file exists """
         try:
-            self.client.head_object(Bucket=bucket, Key=object)
+            await self.client.head_object(Bucket=bucket, Key=object)
             return True
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == '404':
@@ -36,9 +36,9 @@ class S3:
         """ Read file from S3 """
         bucket, key = filename.split('/', 1)
         try:
-            body = self.client.get_object(Bucket=bucket, Key=key)
+            body = await self.client.get_object(Bucket=bucket, Key=key)
             return body['Body'].read()
-        except self.client.exceptions.NoSuchKey:
+        except await self.client.exceptions.NoSuchKey:
             self.log.error(f'Missing {key}')
         except botocore.exceptions.ClientError:
             self.log.error(f'Missing {key}')
@@ -46,31 +46,34 @@ class S3:
     def download_file(self, filename: str, dst: str):
         bucket, key = filename.split('/', 1)
         try:
-            self.client.download_file(bucket, key, dst)
-        except self.client.exceptions.NoSuchKey:
-            self.log.error(f'Missing {key}')
+            await self.client.download_file(bucket, key, dst)
+        except ClientError as ex:
+            if ex.response.get('Error', {}).get('Code') == 'NoSuchKey':
+                self.log.error(f'Missing {key}')
+            else:
+                self.log.error('Encountered an unknown error')
 
     def upload_file(self, src: str, filename: str):
         bucket, key = filename.split('/', 1)
         try:
-            self.client.upload_file(src, bucket, key)
+            await self.client.upload_file(src, bucket, key)
         except FileNotFoundError:
             self.log.error(f'Missing {src}')
 
     async def write(self, filename: str, contents: str) -> None:
         """ Write file to S3 """
         bucket, key = filename.split('/', 1)
-        self.client.put_object(Body=contents, Bucket=bucket, Key=key)
+        await self.client.put_object(Body=contents, Bucket=bucket, Key=key)
 
     async def delete(self, filename: str) -> None:
         """ Delete file from S3 """
         bucket, key = filename.split('/', 1)
-        self.client.delete_object(Bucket=bucket, Key=key)
+        await self.client.delete_object(Bucket=bucket, Key=key)
 
     async def walk(self, bucket: str, prefix: str) -> [str]:
         """ Get all files of S3 bucket """
         try:
-            obj_list = self.client.list_objects_v2(Bucket=bucket, Prefix=prefix).get('Contents', [])
+            obj_list = await self.client.list_objects_v2(Bucket=bucket, Prefix=prefix).get('Contents', [])
             return [f['Key'] for f in obj_list]
         except botocore.exceptions.ConnectionClosedError:
             self.log.error('Failed connection to AWS S3')
@@ -79,7 +82,7 @@ class S3:
         """ Read all contents of S3 bucket """
         def _retrieve(k):
             try:
-                cfg = self.client.get_object(Bucket=bucket, Key=k)
+                cfg = await self.client.get_object(Bucket=bucket, Key=k)
                 return k, cfg['Body'].read()
             except Exception:
                 return None
@@ -106,7 +109,7 @@ class S3:
     def redirect_url(self, bucket: str, object_name: str, expires_in=60) -> Optional[str]:
         """ Generate a time-bound redirect URL to a specific file in a bucket """
         try:
-            return self.client.generate_presigned_url(ClientMethod='get_object',
+            return await self.client.generate_presigned_url(ClientMethod='get_object',
                                                       Params=dict(Bucket=bucket, Key=object_name),
                                                       ExpiresIn=expires_in,
                                                       HttpMethod='GET')
