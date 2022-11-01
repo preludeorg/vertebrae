@@ -91,7 +91,8 @@ class S3:
 
         my_files = dict()
         try:
-            completed, pending = await asyncio.wait([_retrieve(f) for f in await self.walk(bucket=bucket, prefix=prefix)])
+            files = await self.walk(bucket=bucket, prefix=prefix)
+            completed, pending = await asyncio.wait([_retrieve(f) for f in files])
             for task in completed:
                 key, contents = task.result()
                 if contents:
