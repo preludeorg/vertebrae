@@ -47,7 +47,7 @@ class S3:
         try:
             await self.client.download_file(bucket, key, dst)
         except await self.client.exceptions.NoSuchKey:
-            self.log.warning(f'Missing {object}')
+            self.log.error(f'Missing {key}')
 
     async def upload_file(self, src: str, filename: str):
         bucket, key = filename.split('/', 1)
