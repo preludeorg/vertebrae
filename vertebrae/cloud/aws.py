@@ -6,7 +6,7 @@ from vertebrae.config import Config
 class AWS:
 
     @classmethod
-    async def client(cls, service: str):
-        if aws := Config.find('aws') :
+    def client(cls, service: str):
+        if aws := Config.find('aws'):
             session = AioSession(profile=aws.get('profile'))
-            return await session.create_client(service_name=service, region_name=Config.find('aws')['region'])
+            return session.create_client(service_name=service, region_name=Config.find('aws')['region'])

@@ -16,15 +16,12 @@ class S3:
         logging.getLogger('s3transfer').setLevel(logging.INFO)
         self.client = None
 
-    async def connect(self):
-        """ Establish a connection to AWS """
-        self.client = await AWS.client('s3')
-
     async def exists(self, bucket: str, object: str):
         """ Check if a file exists """
         try:
-            await self.client.head_object(Bucket=bucket, Key=object)
-            return True
+            async with AWS.client('s3') as client:
+                await client.head_object(Bucket=bucket, Key=object)
+                return True
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == '404':
                 self.log.warning(f'Missing {object}')
@@ -35,8 +32,9 @@ class S3:
         """ Read file from S3 """
         bucket, key = filename.split('/', 1)
         try:
-            body = await self.client.get_object(Bucket=bucket, Key=key)
-            return body['Body'].read()
+            async with AWS.client('s3') as client:
+                body = await client.get_object(Bucket=bucket, Key=key)
+                return body['Body'].read()
         except await self.client.exceptions.NoSuchKey:
             self.log.error(f'Missing {key}')
         except botocore.exceptions.ClientError:
@@ -45,32 +43,37 @@ class S3:
     async def download_file(self, filename: str, dst: str):
         bucket, key = filename.split('/', 1)
         try:
-            await self.client.download_file(bucket, key, dst)
+            async with AWS.client('s3') as client:
+                await client.download_file(bucket, key, dst)
         except await self.client.exceptions.NoSuchKey:
             self.log.error(f'Missing {key}')
 
     async def upload_file(self, src: str, filename: str):
         bucket, key = filename.split('/', 1)
         try:
-            await self.client.upload_file(src, bucket, key)
+            async with AWS.client('s3') as client:
+                await client.upload_file(src, bucket, key)
         except FileNotFoundError:
             self.log.error(f'Missing {src}')
 
     async def write(self, filename: str, contents: str) -> None:
         """ Write file to S3 """
         bucket, key = filename.split('/', 1)
-        await self.client.put_object(Body=contents, Bucket=bucket, Key=key)
+        async with AWS.client('s3') as client:
+            await client.put_object(Body=contents, Bucket=bucket, Key=key)
 
     async def delete(self, filename: str) -> None:
         """ Delete file from S3 """
         bucket, key = filename.split('/', 1)
-        await self.client.delete_object(Bucket=bucket, Key=key)
+        async with AWS.client('s3') as client:
+            await client.delete_object(Bucket=bucket, Key=key)
 
     async def walk(self, bucket: str, prefix: str) -> [str]:
         """ Get all files of S3 bucket """
         try:
-            obj_list = await self.client.list_objects_v2(Bucket=bucket, Prefix=prefix).get('Contents', [])
-            return [f['Key'] for f in obj_list]
+            async with AWS.client('s3') as client:
+                obj_list = await client.list_objects_v2(Bucket=bucket, Prefix=prefix)
+                return [f['Key'] for f in obj_list.get('Contents', [])]
         except botocore.exceptions.ConnectionClosedError:
             self.log.error('Failed connection to AWS S3')
 
@@ -78,19 +81,19 @@ class S3:
         """ Read all contents of S3 bucket """
         async def _retrieve(k):
             try:
-                cfg = await self.client.get_object(Bucket=bucket, Key=k)
-                return k, cfg['Body'].read()
+                async with AWS.client('s3') as client:
+                    cfg = await client.get_object(Bucket=bucket, Key=k)
+                    return k, await cfg['Body'].read()
             except Exception:
                 return None
 
         my_files = dict()
         try:
-            for files in await self.walk(bucket=bucket, prefix=prefix):
-                completed, pending = await asyncio.wait(*[_retrieve(f) for f in files])
-                for task in completed:
-                    key, contents = task.result()
-                    if contents:
-                        my_files[os.path.basename(key)] = contents
+            completed, pending = await asyncio.wait([_retrieve(f) for f in await self.walk(bucket=bucket, prefix=prefix)])
+            for task in completed:
+                key, contents = task.result()
+                if contents:
+                    my_files[os.path.basename(key)] = contents
             return my_files
         except botocore.exceptions.ConnectionClosedError:
             self.log.error('Failed connection to AWS S3')
@@ -98,9 +101,10 @@ class S3:
     async def redirect_url(self, bucket: str, object_name: str, expires_in=60) -> Optional[str]:
         """ Generate a time-bound redirect URL to a specific file in a bucket """
         try:
-            return await self.client.generate_presigned_url(ClientMethod='get_object',
-                                                            Params=dict(Bucket=bucket, Key=object_name),
-                                                            ExpiresIn=expires_in,
-                                                            HttpMethod='GET')
+            async with AWS.client('s3') as client:
+                return await client.generate_presigned_url(ClientMethod='get_object',
+                                                           Params=dict(Bucket=bucket, Key=object_name),
+                                                           ExpiresIn=expires_in,
+                                                           HttpMethod='GET')
         except BotoCoreError:
             raise FileNotFoundError('Cannot find file. Make sure your requested version is correct.')

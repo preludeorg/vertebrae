@@ -21,4 +21,3 @@ class Database:
         await self.relational.connect()
         await self.cache.connect()
         await self.directory.connect()
-        await self.s3.connect()

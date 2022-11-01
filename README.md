@@ -184,7 +184,8 @@ Vertebrae contains a cloud module that supplies clients to popular cloud provide
 To access any AWS service:
 
 ```python
-client = AWS.client('s3')
+async with AWS.client('s3') as client:
+    await client.list_objects_v2(...)
 ```
 
 ### Detect 
