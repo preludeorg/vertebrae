@@ -71,7 +71,7 @@ class Server:
     def setup_logger(path):
         logging.basicConfig(
             level='DEBUG',
-            format='%(asctime)s - %(levelname)-5s [%(name)s] %(message)s',
+            format='%(asctime)s - %(levelname)-5s [%(name)s/%(filename)s] %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S',
             handlers=[WatchedFileHandler(filename=path)] if path else None
         )
