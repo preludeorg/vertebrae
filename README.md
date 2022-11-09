@@ -130,6 +130,8 @@ def allowed(func):
     return helper
 ```
 
+And that's it! The result is a functional Python microservice.
+
 ## Advanced
 
 ### Config
