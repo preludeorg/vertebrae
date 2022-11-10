@@ -1,1 +1,1 @@
-vertebrae==0.6.1
+vertebrae==0.6.9
