@@ -28,28 +28,7 @@ Copy the [sample](sample) application and use it as a template for your own proj
 
 ### How it works
 
-Create a Vertebrae Server and attach Applications (APIs) to it with defined Vertebrae Routes:
-
-```python
-from app.routes.core_routes import CoreRoutes
-from app.services.chat import ChatService
-from vertebrae.config import Config
-from vertebrae.core import Server, Application
-
-
-if __name__ == '__main__':
-    Config.load(Config.strip(env='conf/env.yml'))
-    server = Server(
-        applications=[
-            Application(port=8079, routes=[CoreRoutes()]),
-        ],
-        services=[
-            ChatService(name='chat')
-        ])
-    server.run()
-```
-
-Next, add route classes to accept API requests:
+Start by creating route classes that accept API requests:
 
 > Vertebrae supplies a /ping route for every Application by default, which is helpful if you have a load-balancer doing health checks.
 
@@ -80,7 +59,7 @@ class CoreRoutes:
         return web.Response(status=200, text='Message saved!')
 ```
 
-Finally, add service classes that contain your business logic:
+Route classes should interact with Service classes that contain your actual business logic:
 
 ```python
 from vertebrae.service import Service
@@ -106,7 +85,34 @@ class ChatService(Service):
 
 ```
 
-Provide authentication to your API routes through decorators. Pay attention to the special ```strip_request``` function, which uniformly pulls data from API requests whether they are in query parameters, POST properties or other, and sends them in as a ```data``` parameter into all route handlers:
+Finally, attach your Route and Service classes to a Vertebrae Server which makes them available at a chosen port:
+
+```python
+from app.routes.core_routes import CoreRoutes
+from app.services.chat import ChatService
+from vertebrae.config import Config
+from vertebrae.core import Server, Application
+
+
+if __name__ == '__main__':
+    Config.load(Config.strip(env='conf/env.yml'))
+    server = Server(
+        applications=[
+            Application(port=8079, routes=[CoreRoutes()]),
+        ],
+        services=[
+            ChatService(name='chat')
+        ])
+    server.run()
+```
+
+### Authentication (optional)
+
+Provide authentication to your API routes through decorators. 
+
+> This decorator is used in the Route class example above. 
+
+Pay attention to the special ```strip_request``` function, which uniformly pulls data from API requests whether they are in query parameters, POST properties or other, and sends them in as a ```data``` parameter into all route handlers:
 
 ```python
 from functools import wraps
@@ -129,8 +135,6 @@ def allowed(func):
         return await func(args[0], **params)
     return helper
 ```
-
-And that's it! The result is a functional Python microservice.
 
 ## Advanced
 
