@@ -14,19 +14,18 @@ class Directory:
         self.name = None
 
     async def connect(self) -> None:
-        """ Construct a local file system """
         self.name = Config.find('directory', os.path.join(str(Path.home()), '.vertebrae'))
         Path(self.name).mkdir(parents=True, exist_ok=True)
 
     async def read(self, filename: str):
         filepath = Path(pathlib.PurePath(self.name, filename))
-        async with aiofiles.open(filepath, mode='r') as f:
+        async with aiofiles.open(filepath, mode='rb') as f:
             return await f.read()
 
     async def walk(self, bucket: str, prefix='*'):
         filepath = Path(pathlib.PurePath(self.name, bucket))
         for path in Path(filepath).glob(f'{prefix}*'):
-            async with aiofiles.open(path, mode='r') as _:
+            async with aiofiles.open(path, mode='rb') as _:
                 yield os.path.basename(path)
 
     async def write(self, filename: str, contents: str):

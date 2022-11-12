@@ -38,22 +38,6 @@ class S3:
         except botocore.exceptions.ClientError:
             self.log.error(f'Missing {key}')
 
-    async def download_file(self, filename: str, dst: str):
-        bucket, key = filename.split('/', 1)
-        try:
-            async with AWS.client('s3') as client:
-                await client.download_file(bucket, key, dst)
-        except await self.client.exceptions.NoSuchKey:
-            self.log.error(f'Missing {key}')
-
-    async def upload_file(self, src: str, filename: str):
-        bucket, key = filename.split('/', 1)
-        try:
-            async with AWS.client('s3') as client:
-                await client.upload_file(src, bucket, key)
-        except FileNotFoundError:
-            self.log.error(f'Missing {src}')
-
     @staticmethod
     async def write(filename: str, contents: str) -> None:
         """ Write file to S3 """
