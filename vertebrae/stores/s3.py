@@ -35,8 +35,6 @@ class S3:
             async with AWS.client('s3') as client:
                 body = await client.get_object(Bucket=bucket, Key=key)
                 return await body['Body'].read()
-        except await self.client.exceptions.NoSuchKey:
-            self.log.error(f'Missing {key}')
         except botocore.exceptions.ClientError:
             self.log.error(f'Missing {key}')
 
