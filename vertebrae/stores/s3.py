@@ -57,7 +57,7 @@ class S3:
         try:
             async with AWS.client('s3') as client:
                 obj_list = await client.list_objects_v2(Bucket=bucket, Prefix=prefix)
-                return [f['Key'] for f in obj_list.get('Contents', [])]
+                return [f['Key'] for f in obj_list.get('Contents', []) if f['Size'] > 0]
         except botocore.exceptions.ConnectionClosedError:
             self.log.error('Failed connection to AWS S3')
 
