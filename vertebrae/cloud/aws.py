@@ -7,6 +7,5 @@ class AWS:
 
     @classmethod
     def client(cls, service: str):
-        if aws := Config.find('aws'):
-            session = AioSession(profile=aws.get('profile'))
-            return session.create_client(service_name=service, region_name=aws.get('region'))
+        session = AioSession(profile=Config.find('aws_profile'))
+        return session.create_client(service_name=service, region_name=Config.find('aws_region'))
