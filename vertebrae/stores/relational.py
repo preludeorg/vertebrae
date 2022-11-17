@@ -20,22 +20,24 @@ class Relational:
                     return await cursor_lambda(cur)
 
     async def connect(self) -> None:
-        if Config.find('postgres_database'):
+        pgdbname = Config.find('postgres_database')
+        
+        if pgdbname:
             """ Establish a connection to Postgres """
             dsn = ( f"user={Config.find('postgres_user')} " if Config.find('postgres_user') else ''
                     f"password={Config.find('postgres_password')} " if Config.find('postgres_password') else ''
                     f"host={Config.find('postgres_host')} " if Config.find('postgres_host') else ''
                     f"port={Config.find('postgres_port')} " if Config.find('postgres_port') else '')
             try:
-                self._pool = await aiopg.create_pool(dsn + f"dbname={Config.find('postgres_database')} ",
+                self._pool = await aiopg.create_pool(dsn + f"dbname={pgdbname} ",
                                                       minsize=0, maxsize=5, timeout=10.0)
-                await self.__pool_execute(self._pool, f"SELECT * FROM pg_database WHERE datname = '{Config.find('postgres_database')};'")
+                await self.__pool_execute(self._pool, f"SELECT * FROM pg_database WHERE datname = '{pgdbname}';")
             except psycopg2.OperationalError:
-                logging.debug(f"Database '{Config.find('postgres_database')}' does not exist")
+                logging.debug(f"Database '{pgdbname}' does not exist")
                 async with aiopg.create_pool(dsn, minsize=0, maxsize=5, timeout=10.0) as sys_conn:
-                    await self.__pool_execute(sys_conn, f"CREATE DATABASE {Config.find('postgres_database')};")
-                logging.debug(f"Created database '{Config.find('postgres_database')}'")
-                self._pool = await aiopg.create_pool(dsn + f"dbname={Config.find('postgres_database')} ",
+                    await self.__pool_execute(sys_conn, f"CREATE DATABASE {pgdbname};")
+                logging.debug(f"Created database '{pgdbname}'")
+                self._pool = await aiopg.create_pool(dsn + f"dbname={pgdbname} ",
                                                       minsize=0, maxsize=5, timeout=10.0)
             with open('conf/schema.sql', 'r') as sql:
                 await self.execute(sql.read())
