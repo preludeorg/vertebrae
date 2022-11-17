@@ -26,7 +26,7 @@ class Relational:
                 f"host={Config.find('postgres_host')} "
                 f"port={Config.find('postgres_port')} ")
         try:
-            self._pool = await aiopg.create_pool(dsn + f"dbname={Config.find('postgres_database)} ",
+            self._pool = await aiopg.create_pool(dsn + f"dbname={Config.find('postgres_database')} ",
                                                   minsize=0, maxsize=5, timeout=10.0)
             await self.__pool_execute(self._pool, f"SELECT * FROM pg_database WHERE datname = '{Config.find('postgres_database')};'")
         except psycopg2.OperationalError:
