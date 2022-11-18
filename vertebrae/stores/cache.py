@@ -16,7 +16,7 @@ class Cache:
           self._cache = aioredis.from_url(
               url=f'redis://{redis}',
               port=6379,
-              db=Config.find('redis.database') or 0,
+              db=Config.find('redis.database', 0),
               decode_responses=True
           )
 
