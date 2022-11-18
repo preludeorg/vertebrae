@@ -173,10 +173,10 @@ postgres.user: postgres
 postgres.password: ~
 postgres.host: localhost
 postgres.port: 5432
-redis_host: localhost
+redis.host: localhost
 directory: /home/ubuntu
-aws_region: us-west-1
-aws_profile: dev_env
+aws.region: us-west-1
+aws.profile: dev_env
 ```
 
 ### Cloud
