@@ -12,7 +12,7 @@ class Relational:
         self._pool = None
 
     @staticmethod
-    async def __pool_execute(pool, statement, params=None, cursor_lambda=None):
+    async def __pool_execute(pool, statement, params = None, cursor_lambda = None):
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(statement, params)
@@ -20,19 +20,17 @@ class Relational:
                     return await cursor_lambda(cur)
 
     async def connect(self) -> None:
+        """ Establish a connection to Postgres """
         dbname = Config.find('postgres.database')
-
         if dbname:
-            """ Establish a connection to Postgres """
             dsn = (f"user={Config.find('postgres.user')} "
                    f"password={Config.find('postgres.password')} "
                    f"host={Config.find('postgres.host')} "
                    f"port={Config.find('postgres.port')} ")
-
             try:
                 self._pool = await aiopg.create_pool(dsn + f"dbname={dbname} ",
                                                      minsize=0, maxsize=5, timeout=10.0)
-                await self.__pool_execute(self._pool, f"SELECT * FROM pg_database WHERE datname = '{dbname}';")
+                await self.__pool_execute(self._pool, f"SELECT * FROM pg_database WHERE datname = '{dbname};'")
             except psycopg2.OperationalError:
                 logging.debug(f"Database '{dbname}' does not exist")
                 async with aiopg.create_pool(dsn, minsize=0, maxsize=5, timeout=10.0) as sys_conn:
