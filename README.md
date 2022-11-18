@@ -168,17 +168,15 @@ To enable any, ensure your Config module contains the appropriate connection det
 Here is a complete listing:
 
 ```yaml
-postgres:
-  database: frequency
-  user: postgres
-  password: ~
-  host: localhost
-  port: 5432
-redis:
-  host: localhost
+postgres.database: frequency
+postgres.user: postgres
+postgres.password: ~
+postgres.host: localhost
+postgres.port: 5432
+redis.host: localhost
 directory: /home/ubuntu
-aws:
-  region: us-west-1
+aws.region: us-west-1
+aws.profile: dev_env
 ```
 
 ### Cloud

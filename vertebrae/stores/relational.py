@@ -21,22 +21,22 @@ class Relational:
 
     async def connect(self) -> None:
         """ Establish a connection to Postgres """
-        postgres = Config.find('postgres')
-        if postgres:
-            dsn = (f"user={postgres['user']} "
-                   f"password={postgres['password']} "
-                   f"host={postgres['host']} "
-                   f"port={postgres['port']} ")
+        dbname = Config.find('postgres.database')
+        if dbname:
+            dsn = (f"user={Config.find('postgres.user')} "
+                   f"password={Config.find('postgres.password')} "
+                   f"host={Config.find('postgres.host')} "
+                   f"port={Config.find('postgres.port')} ")
             try:
-                self._pool = await aiopg.create_pool(dsn + f"dbname={postgres['database']} ",
+                self._pool = await aiopg.create_pool(dsn + f"dbname={dbname} ",
                                                      minsize=0, maxsize=5, timeout=10.0)
-                await self.__pool_execute(self._pool, f"SELECT * FROM pg_database WHERE datname = '{postgres['database']};'")
+                await self.__pool_execute(self._pool, f"SELECT * FROM pg_database WHERE datname = '{dbname};'")
             except psycopg2.OperationalError:
-                logging.debug(f"Database '{postgres['database']}' does not exist")
+                logging.debug(f"Database '{dbname}' does not exist")
                 async with aiopg.create_pool(dsn, minsize=0, maxsize=5, timeout=10.0) as sys_conn:
-                    await self.__pool_execute(sys_conn, f"CREATE DATABASE {postgres['database']};")
-                logging.debug(f"Created database '{postgres['database']}'")
-                self._pool = await aiopg.create_pool(dsn + f"dbname={postgres['database']} ",
+                    await self.__pool_execute(sys_conn, f"CREATE DATABASE {dbname};")
+                logging.debug(f"Created database '{dbname}'")
+                self._pool = await aiopg.create_pool(dsn + f"dbname={dbname} ",
                                                      minsize=0, maxsize=5, timeout=10.0)
             with open('conf/schema.sql', 'r') as sql:
                 await self.execute(sql.read())
@@ -55,7 +55,7 @@ class Relational:
     async def fetch(self, query: str, params=()):
         """ Find all matches for a query """
         async def cursor_operation(cur):
-           return await cur.fetchall()
+            return await cur.fetchall()
 
         try:
             return await self.__pool_execute(self._pool, query, params, cursor_operation)

@@ -11,14 +11,14 @@ class Cache:
 
     async def connect(self) -> None:
         """ Establish a connection to Redis """
-        redis = Config.find('redis')
+        redis = Config.find("redis.host")
         if redis:
-            self._cache = aioredis.from_url(
-                url=f'redis://{redis.get("host")}',
-                port=6379,
-                db=redis.get("database", 0),
-                decode_responses=True
-            )
+          self._cache = aioredis.from_url(
+              url=f'redis://{redis}',
+              port=6379,
+              db=Config.find('redis.database', 0),
+              decode_responses=True
+          )
 
     async def get(self, k):
         return await self._cache.get(k)
