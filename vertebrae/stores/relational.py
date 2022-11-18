@@ -30,7 +30,7 @@ class Relational:
             try:
                 self._pool = await aiopg.create_pool(dsn + f"dbname={dbname} ",
                                                      minsize=0, maxsize=5, timeout=10.0)
-                await self.__pool_execute(self._pool, f"SELECT * FROM pg_database WHERE datname = '{dbname};'")
+                await self.__pool_execute(self._pool, f"SELECT * FROM pg_database WHERE datname = '{dbname}';")
             except psycopg2.OperationalError:
                 logging.debug(f"Database '{dbname}' does not exist")
                 async with aiopg.create_pool(dsn, minsize=0, maxsize=5, timeout=10.0) as sys_conn:
