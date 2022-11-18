@@ -37,4 +37,5 @@ class Config:
             formated = k.lower().replace("_",".")
             if formated in env.keys():
                 env[formated] = os.environ[k]
+
         return env
