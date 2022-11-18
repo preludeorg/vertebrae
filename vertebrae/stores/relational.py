@@ -20,14 +20,14 @@ class Relational:
                     return await cursor_lambda(cur)
 
     async def connect(self) -> None:
-        pgdbname = Config.find('postgres_database')
+        pgdbname = Config.find('postgres.database')
         
         if pgdbname:
             """ Establish a connection to Postgres """
-            dsn = ( f"user={Config.find('postgres_user')} " if Config.find('postgres_user') else ''
-                    f"password={Config.find('postgres_password')} " if Config.find('postgres_password') else ''
-                    f"host={Config.find('postgres_host')} " if Config.find('postgres_host') else ''
-                    f"port={Config.find('postgres_port')} " if Config.find('postgres_port') else '')
+            dsn = ( f"user={Config.find('postgres.user')} " if Config.find('postgres.user') else ''
+                    f"password={Config.find('postgres.password')} " if Config.find('postgres.password') else ''
+                    f"host={Config.find('postgres.host')} " if Config.find('postgres.host') else ''
+                    f"port={Config.find('postgres.port')} " if Config.find('postgres.port') else '')
             try:
                 self._pool = await aiopg.create_pool(dsn + f"dbname={pgdbname} ",
                                                       minsize=0, maxsize=5, timeout=10.0)
