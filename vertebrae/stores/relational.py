@@ -45,7 +45,6 @@ class Relational:
 
     async def execute(self, statement: str, params=(), return_val=False):
         """ Run statement """
-
         async def cursor_operation(cur):
             if return_val:
                 return (await cur.fetchone())[0]
@@ -57,7 +56,6 @@ class Relational:
 
     async def fetch(self, query: str, params=()):
         """ Find all matches for a query """
-
         async def cursor_operation(cur):
             return await cur.fetchall()
 
