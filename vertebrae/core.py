@@ -43,12 +43,8 @@ class Server:
     def __init__(self, services, applications):
         self.setup_logger(path=os.getenv('logfile'))
         self.loop = asyncio.new_event_loop()
+        self.applications = applications
         asyncio.set_event_loop(self.loop)
-
-        for app in applications:
-            app.attach_routes()
-            app.attach_gui()
-            self.loop.run_until_complete(app.start())
         for service in services:
             Service.enroll(service.log.name, service)
         create_log('server').info(f'Serving {len(applications)} apps with {len(services)} services')
@@ -57,6 +53,11 @@ class Server:
         try:
             self.start_probe()
             self.loop.run_until_complete(Service.initialize())
+            for app in self.applications:
+                app.attach_routes()
+                app.attach_gui()
+                self.loop.run_until_complete(app.start())
+            logging.info("ready to serve")
             self.loop.run_forever()
         except KeyboardInterrupt:
             logging.info('Keyboard interrupt received')
