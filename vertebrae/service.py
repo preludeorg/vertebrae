@@ -3,6 +3,7 @@ import asyncio
 import hashlib
 import logging
 
+from vertebrae.config import Config
 from vertebrae.database import Database
 
 
@@ -35,11 +36,14 @@ class Service(abc.ABC):
     @classmethod
     async def initialize(cls) -> None:
         """ Connect to databases and run all service 'start' functions """
+        tasks = []
         await cls._database.connect()
         for name, service in cls._services.items():
             func = getattr(service, 'start', None)
             if callable(func):
-                asyncio.create_task(func())
+                tasks.append(func())
+        wait = Config.find('wait_start', True)
+        await asyncio.gather(*tasks) if wait else [asyncio.create_task(t) for t in tasks]
 
     @classmethod
     def create_log(cls, name: str) -> logging.Logger:
