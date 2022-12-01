@@ -88,7 +88,6 @@ class Application:
         self.routes = routes
         self.template_directory = template_directory
         self.application = web.Application(client_max_size=client_max_size)
-        self.application.router.add_route('GET', '/ping', self.pong)
         self.cors = aiohttp_cors.setup(self.application, defaults={
             "*": aiohttp_cors.ResourceOptions(
                     expose_headers="*",
@@ -97,6 +96,7 @@ class Application:
         })
 
     def attach_routes(self):
+        self.application.router.add_route('GET', '/ping', self.pong)
         for collection in self.routes:
             for route in collection.routes():
                 route_type = type(route)
