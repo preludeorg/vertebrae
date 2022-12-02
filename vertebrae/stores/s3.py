@@ -52,6 +52,13 @@ class S3:
         async with AWS.client('s3') as client:
             await client.delete_object(Bucket=bucket, Key=key)
 
+    async def delete_all(self, path: str) -> None:
+        """ Delete all files prefixed by `path` from S3 """
+        bucket, prefix = path.split('/', 1)
+        objects = [dict(Key=f) for f in await self.walk(bucket, prefix)]
+        async with AWS.client('s3') as client:
+            await client.delete_objects(Bucket=bucket, Delete=dict(Objects=objects))
+
     async def walk(self, bucket: str, prefix: str) -> [str]:
         """ Get all files of S3 bucket """
         try:
