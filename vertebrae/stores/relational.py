@@ -41,7 +41,7 @@ class Relational:
             with open('conf/schema.sql', 'r') as sql:
                 await self.execute(sql.read())
 
-    async def execute(self, statement: str, params=(), return_val=False):
+    async def execute(self, statement: str, params=(), return_val=False, swallow_error=True):
         """ Run statement """
         async def cursor_operation(cur):
             if return_val:
@@ -50,6 +50,8 @@ class Relational:
         try:
             return await self.__pool_execute(self._pool, statement, params, cursor_operation)
         except Exception as e:
+            if not swallow_error and isinstance(e, psycopg2.errors.UniqueViolation):
+                raise e
             self.log.exception(e)
 
     async def fetch(self, query: str, params=()):
